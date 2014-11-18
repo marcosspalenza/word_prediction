@@ -1,3 +1,4 @@
+# initialize.py
 class DicioObj():
     rootWord = ""
     freq = 0
@@ -19,3 +20,5 @@ class DicioObj():
         self.postWords.append(newcomp)
     def getComplem(self):
         return self.postWords    
+def __init__(root_, freq_, post_):
+    return DicioObj(root_, freq_, post_)

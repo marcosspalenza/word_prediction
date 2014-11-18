@@ -1,3 +1,4 @@
+# initialize.py
 class WordObj():
     chars = ""
     ant = ""
@@ -16,6 +17,5 @@ class WordObj():
         return self.ant
     def getPosterior(self):
         return self.post
-def makeWord(chars_, ant_, post_):
-    word = WordObj(chars_, ant_, post_)
-    return word
+def __init__(chars_,ant_, post_):
+    return WordObj(chars_,ant_,post_)
