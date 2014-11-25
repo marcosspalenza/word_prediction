@@ -2,17 +2,20 @@
 #dicioObj.py
 #dynamic.py
 import re
+import os
 from wordObj import WordObj
 from dicioObj import DicioObj
 
 def openfiles(arquivo):
     wordgroup = []
     wordCount = 0
-    arq = open(arquivo)
-    for line in arq:
-        for word in line.split():
-            wordgroup.append(word)
-            wordCount += 1
+    print(arquivo)
+    if ( os.path.exists ( arquivo )) :
+        arq = open(arquivo,'r',encoding="latin-1")
+        for line in arq: 
+            for word in line.split():
+                wordgroup.append(word)
+                wordCount += 1
     return (wordgroup)
 def makeObjects(baselist,swords):
     newList = []
@@ -57,4 +60,6 @@ def insertNewWord(word):
     return dicioUn
 def cleaner(word):
     nword = re.sub('\W\d','',word)
+    nword = re.sub('[.=,:;!?<>]',"",nword)
+    nword = re.sub(" ","",nword)
     return nword

@@ -1,106 +1,105 @@
-import sys
-from complemento import Complemento
-import mysql.connector
-import re
+import string
+
 class CreateDB():
-    user = ""
-    pswd = ""
-    bd = ""    
+    file = ""
+    arqs = ""
     def __init__(self):
-        self.bd = "dictionary"
+        self.file = "./arquivos/dictionary"
+        self.arqs = "./arqs.txt"
     def createDicionario(self):
-        try:
-            conn = mysql.connector.connect(user="root", password="", database=self.bd)
-            cursor = conn.cursor()
-            cursor.execute('''CREATE TABLE PALAVRAS(
-                IDWD        INT   PRIMARY KEY   AUTO_INCREMENT,
-                WORD   VARCHAR(50)   NOT NULL,
-                FREQ   INT     NOT NULL)''')
-            cursor.execute('''CREATE TABLE COMPLEMENTOS(
-                IDCP        INT   PRIMARY KEY   AUTO_INCREMENT,
-                PALAVRA   VARCHAR(50)   NOT NULL,
-                BASE   VARCHAR(3),
-                IDPALAVRA INT    NOT NULL,
-                CONSTRAINT `cplmn_palavras` FOREIGN KEY (`IDPALAVRA`)
-                    REFERENCES `PALAVRAS` (`IDWD`))''')
-            cursor.close()
-        except mysql.connector.Error as e:
-            print("[DB-ERROR] : ERRO AO ACESSAR o DB [ERRORv01]")
-            print(e)
-            sys.exit(1)
-        print ("[Database] Estrutura criada com sucesso!");
-    def editDicionario(self, lst_palavras,end):
-        try :
-            conn = mysql.connector.connect(user="root", password="", database=self.bd)
-            cursor = conn.cursor(buffered=True)
-            for palavra in lst_palavras:
+        open(self.arqs, mode='w')
+        for l in string.ascii_uppercase:
+            open(self.file+l+".txt", mode='w')
+    def editDicionario(self, lst_palavras,lst_arq):
+        for palavra in lst_palavras:
+            try:
                 word = palavra.getRoot()
                 freq = palavra.getFreq()
-                cursor.execute("SELECT `IDWD` FROM PALAVRAS WHERE `WORD` = '"+word+"'")
-                values = cursor.fetchone()
-                if values == None:
-                    fval  = palavra.getFreq()
-                    query = ("INSERT INTO PALAVRAS (`IDWD`, `WORD`, `FREQ`) VALUES (NULL,'"+word+"',"+str(fval)+")")
-                    cursor.execute(query)
-                    gen_id = cursor.lastrowid
-                    if gen_id >= 0:
-                        for w in palavra.getComplem():
-                            query = ("INSERT INTO COMPLEMENTOS (`IDCP`,`PALAVRA`,`BASE`,`IDPALAVRA`) VALUES (NULL,'"+w+"','"+end+"',"+str(gen_id)+")")
-                            cursor.execute(query)
-                else:
-                    gen_id = int(values[0])
-                    freq =freq+gen_id
-                    cursor.execute("UPDATE PALAVRAS SET `FREQ`="+str(freq)+" WHERE `IDWD` = "+str(gen_id))
-                    for w in palavra.getComplem():
-                        cursor.execute("INSERT INTO COMPLEMENTOS (`IDCP`,`PALAVRA`,`BASE`,`IDPALAVRA`) VALUES (NULL,'"+w+"','"+end+"',"+str(gen_id)+")")
-            conn.commit()
-            conn.close()
-        except mysql.connector.Error as e:
-            print("[DB-ERROR] : ERRO AO ACESSAR o DB [ERRORv02]")
-            print(e)
-            sys.exit(1)
-    def buscaDicionario(self,palavra):
-    #id [0] - palavra [1] - freq [2] >>> PALAVRAS 
-    #id [0] - compl [1] - - base [3]  fk_id [4]
-        printval=""
-        try:
-            conn = mysql.connector.connect(user="root", password="", database=self.bd)
-            cursor = conn.cursor()
-            cursor.execute("SELECT `IDWD`, `FREQ` FROM PALAVRAS WHERE `WORD` = '"+palavra+"'")
-            values = cursor.fetchone()
-            if values == None:
-                print ("Palavra inexistente no DB!")
-            else:
-                listCompl = []
-                ident = values[0]
-                freq = int(values[1])
-                cursor.execute("SELECT `PALAVRA` FROM COMPLEMENTOS WHERE `IDPALAVRA` = "+str(ident))
-                compls = cursor.fetchall()
-                for i in compls:
-                    aux = re.sub('[.=,:;!?<>]',"",i[0])
-                    listCompl.append(aux)
-                lstaux = []
-                for c in listCompl:
-                    if not c in lstaux:
-                        freqc = listCompl.count(c)
-                        bayes = freqc /freq
-                        obj = Complemento(c,freqc,bayes)
-                        lstaux.append(obj)
-                while len(lstaux)>0:
-                    obj = lstaux[0]
-                    for compl in lstaux:
-                        if obj.getBayes()<compl.getBayes():
-                            obj = compl
-                    aux = str(obj.getPalavra())
-                    printval = printval + aux+"\n"
-                    listaCompl = []
-                    for i in lstaux:
-                        if i.getPalavra() != obj.getPalavra():
-                            listaCompl.append(i)
-                    lstaux = listaCompl
-            conn.close()
-        except mysql.connector.Error as e:
-            print("[DB-ERROR] : ERRO AO ACESSAR o DB [ERRORv03]")
-            print(e)
-            sys.exit(1)
-        return printval  
+                compls = ""
+                for w in palavra.getComplem():
+                    compls=(compls+"#"+w)
+                l = word[0]
+                l = l.upper()
+                if l in string.ascii_uppercase:
+                    with open(self.file+l+".txt", "a") as dicionario:
+                        dicionario.write(word+"\t"+str(freq)+"\t"+compls+"\n")
+            except Exception as e:
+                print(e)
+                pass
+        for arq in lst_arq:
+            try:
+                with open(self.arqs, "a") as arquivos:
+                    arquivos.write(arq+"\n")
+            except:
+                pass
+    def buscaDicionario(self, palavra, nmax):
+        strVal = ""
+        l = palavra[0]
+        l = l.upper()
+        if l in string.ascii_uppercase:
+            palavra = palavra.lower()
+            freqAux = 0
+            cmpl =[]
+            with open(self.file+l+".txt", "r") as dicionario:
+                for line in dicionario.readlines():
+                    if line.find("\t")>0 and palavra == line[ : line.index("\t")]:
+                        lAux = line[(line.index("\t")+1) : ]
+                        freqAux += int(lAux[ : lAux.index("\t")])
+                        lAux = lAux[(lAux.index("\t")+1) : ]
+                        while lAux.find("#")>=0:
+                            lAux = lAux[(lAux.index("#")+1) : ]   
+                            if lAux.find("#")>=0:
+                                aux =  lAux[ : (lAux.index("#"))]
+                                cmpl.append(aux)
+                            else: 
+                                cmpl.append(lAux[:-1])
+            strVal += "freq -> "+str(freqAux)
+            cicnt = 0
+            while len(cmpl)>0:
+                if cicnt==nmax:
+                    return strVal
+                cicnt += 1
+                strA = cmpl[0]
+                num = 0
+                for c in cmpl:
+                    cnt = 0
+                    for a in cmpl:
+                        if a == c:
+                            cnt+=1
+                    if(cnt>num):
+                        strA = c
+                        num = cnt
+                strVal += "\n | "+strA+" | - ["+str(num)+"]\n"
+                auxL = []
+                for c in cmpl:
+                    if not c in strA:
+                        auxL.append(c)
+                cmpl = auxL
+        return strVal
+    def buscaPalavra(self, char, palavra):
+        char = char.upper()
+        with open(self.file+char+".txt", "r") as dicionario:
+            for line in dicionario.readlines():
+                probValue = line[ : line.index("\t")]
+                if probValue != None:
+                    coef = self.lev_dist(palavra,probValue)
+                    if coef <= 2:
+                        return probValue
+    def lev_dist(self, source, target):
+        if source == target:
+            return 0
+        slen, tlen = len(source), len(target)
+        dist = [[0 for i in range(tlen+1)] for x in range(slen+1)]
+        for i in range(slen+1):
+            dist[i][0] = i
+        for j in range(tlen+1):
+            dist[0][j] = j
+        for i in range(slen):
+            for j in range(tlen):
+                cost = 0 if source[i] == target[j] else 1
+                dist[i+1][j+1] = min(
+                    dist[i][j+1] + 1,   # deletion
+                    dist[i+1][j] + 1,   # insertion
+                    dist[i][j] + cost   # substitution
+                )
+        return dist[-1][-1]
